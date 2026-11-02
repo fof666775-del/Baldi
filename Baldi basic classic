@@ -1,0 +1,285 @@
+-- // Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- // ตรวจสอบความปลอดภัยและการทำความสะอาด Session เก่า
+if _G.BaldiGuiInstance then
+    pcall(function() _G.BaldiGuiInstance:Destroy() end)
+    _G.BaldiGuiInstance = nil
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BaldiSmilingMixerGUI"
+ScreenGui.ResetOnSpawn = false
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+elseif gethui then
+    ScreenGui.Parent = gethui()
+else
+    ScreenGui.Parent = CoreGui
+end
+_G.BaldiGuiInstance = ScreenGui
+
+-- // ตัวแปรควบคุมสถานะ (States)
+local Config = {
+    Noclip = false,
+    BaldiDeleted = false,
+    BaldiFrozen = false,
+    AuraKill = false
+}
+
+-- // UI Creation & Styling (Modern Dark Theme)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -175)
+MainFrame.Size = UDim2.new(0, 450, 0, 350)
+MainFrame.Active = true
+MainFrame.Draggable = true -- Drag GUI ได้ทันที
+
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 8)
+
+-- Top Bar
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BorderSizePixel = 0
+
+local TopCorner = Instance.new("UICorner", TopBar)
+TopCorner.CornerRadius = UDim.new(0, 8)
+
+local TitleLabel = Instance.new("TextLabel", TopBar)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.Size = UDim2.new(0, 300, 1, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "Baldi Classic [Smiling Mixer]"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 14
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Close / Cleanup Button
+local CloseBtn = Instance.new("TextButton", TopBar)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Position = UDim2.new(1, -30, 0, 7)
+CloseBtn.Size = UDim2.new(0, 22, 0, 22)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 12
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 4)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    if _G.BaldiGuiInstance then
+        _G.BaldiGuiInstance:Destroy()
+        _G.BaldiGuiInstance = nil
+    end
+end)
+
+-- Tabs System (คงไว้ 3 แท็บตามโครงสร้างเดิม)
+local TabButtonsFrame = Instance.new("Frame", MainFrame)
+TabButtonsFrame.BackgroundTransparency = 1
+TabButtonsFrame.Position = UDim2.new(0, 10, 0, 45)
+TabButtonsFrame.Size = UDim2.new(1, -20, 0, 30)
+
+local function createTabButton(name, xPos)
+    local btn = Instance.new("TextButton", TabButtonsFrame)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.Position = UDim2.new(0, xPos, 0, 0)
+    btn.Size = UDim2.new(0, 136, 1, 0)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local Tab1Btn = createTabButton("Movement", 0)
+local Tab2Btn = createTabButton("Baldi Control", 146)
+local Tab3Btn = createTabButton("Player & Tools", 292)
+
+-- Containers
+local function createContainer()
+    local c = Instance.new("ScrollingFrame", MainFrame)
+    c.BackgroundTransparency = 1
+    c.Position = UDim2.new(0, 10, 0, 85)
+    c.Size = UDim2.new(1, -20, 1, -95)
+    c.CanvasSize = UDim2.new(0, 0, 0, 350)
+    c.ScrollBarThickness = 4
+    c.Visible = false
+    return c
+end
+
+local Tab1Container = createContainer()
+local Tab2Container = createContainer()
+local Tab3Container = createContainer()
+Tab1Container.Visible = true
+
+Tab1Btn.MouseButton1Click:Connect(function()
+    Tab1Container.Visible = true; Tab2Container.Visible = false; Tab3Container.Visible = false
+    Tab1Btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    Tab2Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    Tab3Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+end)
+Tab2Btn.MouseButton1Click:Connect(function()
+    Tab1Container.Visible = false; Tab2Container.Visible = true; Tab3Container.Visible = false
+    Tab1Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    Tab2Btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    Tab3Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+end)
+Tab3Btn.MouseButton1Click:Connect(function()
+    Tab1Container.Visible = false; Tab2Container.Visible = false; Tab3Container.Visible = true
+    Tab1Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    Tab2Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    Tab3Btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+end)
+Tab1Btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+
+-- UI Helper Function สำหรับสร้างปุ่ม Toggle
+local function createToggle(parent, text, yPos, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.Position = UDim2.new(0, 0, 0, yPos)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Font = Enum.Font.Gotham
+    btn.Text = "  " .. text .. ": [OFF]"
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 13
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        if active then
+            btn.BackgroundColor3 = Color3.fromRGB(50, 120, 70)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Text = "  " .. text .. ": [ON]"
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            btn.Text = "  " .. text .. ": [OFF]"
+        end
+        callback(active)
+    end)
+    return btn
+end
+
+-- UI Helper Function สำหรับสร้างปุ่มกดปกติ
+local function createButton(parent, text, yPos, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
+    btn.Position = UDim2.new(0, 0, 0, yPos)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- ================= TAB 1: MOVEMENT =================
+createToggle(Tab1Container, "Noclip", 0, function(state)
+    Config.Noclip = state
+end)
+
+createButton(Tab1Container, "Reset Character / Stats", 45, function()
+    Config.Noclip = false
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = 16
+        char.Humanoid.JumpPower = 50
+    end
+end)
+
+-- ================= TAB 2: BALDI CONTROL =================
+local baldiDeletedInstance = nil
+
+createButton(Tab2Container, "Delete / Restore Baldi", 0, function()
+    local baldi = workspace:FindFirstChild("Baldi") or workspace:FindFirstChild("Bully")
+    if not Config.BaldiDeleted then
+        if baldi then
+            baldiDeletedInstance = baldi:Clone()
+            baldi:Destroy()
+            Config.BaldiDeleted = true
+        end
+    else
+        if baldiDeletedInstance then
+            baldiDeletedInstance.Parent = workspace
+            Config.BaldiDeleted = false
+        end
+    end
+end)
+
+createToggle(Tab2Container, "Freeze Baldi", 45, function(state)
+    Config.BaldiFrozen = state
+    local baldi = workspace:FindFirstChild("Baldi")
+    if baldi and baldi:FindFirstChild("HumanoidRootPart") then
+        baldi.HumanoidRootPart.Anchored = state
+    end
+end)
+
+createButton(Tab2Container, "Bring Baldi to Me", 90, function()
+    local baldi = workspace:FindFirstChild("Baldi")
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if baldi and baldi:FindFirstChild("HumanoidRootPart") and root then
+        baldi.HumanoidRootPart.CFrame = root.CFrame + (root.CFrame.LookVector * 5)
+    end
+end)
+
+createToggle(Tab2Container, "Aura Kill Baldi", 135, function(state)
+    Config.AuraKill = state
+end)
+
+-- ================= TAB 3: PLAYER & TOOLS =================
+createButton(Tab3Container, "Bring Player / TP to Player", 0, function()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame
+            break
+        end
+    end
+end)
+
+-- ================= BACKGROUND LOOPS =================
+RunService.RenderStepped:Connect(function(dt)
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+
+    -- Noclip Loop
+    if Config.Noclip then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+
+    -- Aura Kill Baldi Loop
+    if Config.AuraKill and root then
+        local baldi = workspace:FindFirstChild("Baldi")
+        if baldi and baldi:FindFirstChild("HumanoidRootPart") then
+            if (root.Position - baldi.HumanoidRootPart.Position).Magnitude < 15 then
+                pcall(function()
+                    firetouchinterest(root, baldi.HumanoidRootPart, 0)
+                    firetouchinterest(root, baldi.HumanoidRootPart, 1)
+                end)
+            end
+        end
+    end
+end)
+
+print("Baldi Classic Cleaned Script Loaded Successfully!")
